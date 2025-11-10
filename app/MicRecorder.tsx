@@ -117,10 +117,8 @@ export default function Home() {
   const handleMicClick = () => {
     if (!isRecording) {
       connect();
-      setIsRecording(true);
     } else {
       disconnect();
-      setIsRecording(false);
     }
   };
 
