@@ -32,13 +32,12 @@ export default function Home() {
   const audioContextRef = useRef<any>(null);
   const audioInputRef = useRef<any>(null);
 
-
   const speechRecognized = (data: WordRecognized) => {
     if (data.isFinal) {
       setSessionTranscript((prev) =>
         prev ? `${prev} ${data.text}` : data.text
       );
-      setCurrentRecognition(""); 
+      setCurrentRecognition("");
     } else {
       setCurrentRecognition(data.text);
     }
@@ -118,8 +117,10 @@ export default function Home() {
   const handleMicClick = () => {
     if (!isRecording) {
       connect();
+      setIsRecording(true);
     } else {
       disconnect();
+      setIsRecording(false);
     }
   };
 
