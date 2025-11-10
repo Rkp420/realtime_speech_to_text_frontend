@@ -46,7 +46,9 @@ export default function Home() {
 
   const connect = () => {
     connection?.disconnect();
-    const socket = io.connect("http://localhost:8081");
+    const socket = io.connect(
+      "https://realtime-speech-to-text-backend.vercel.app"
+    );
     socket.on("connect", () => {
       console.log("connected", socket.id);
       setConnection(socket);
