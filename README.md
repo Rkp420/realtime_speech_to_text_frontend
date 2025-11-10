@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Perfect 👍 — here’s a polished, professional README rewrite tailored for your speech-to-text frontend (Next.js) repo.
+It keeps the core Next.js info but adds context about what the project does, how to run it, and how it connects to your backend socket server.
 
-## Getting Started
+⸻
 
-First, run the development server:
+🎙️ Real-Time Speech Transcription (Next.js Frontend)
 
-```bash
+This is a Next.js 14 project built with the App Router and shadcn/ui, providing a real-time speech-to-text interface that connects to a backend speech recognition service (e.g. Google Cloud Speech-to-Text) via Socket.IO.
+
+⸻
+
+🚀 Features
+	•	🎤 Live microphone input using MediaStream and AudioWorklet
+	•	🔊 Real-time transcription displayed as you speak
+	•	🧠 Google Cloud Speech recognition via Socket.IO streaming
+	•	🪶 Clean UI with shadcn/ui and framer-motion
+	•	🌗 Dark theme support with responsive design
+	•	🧾 Session transcript history tracking all recognized speech
+
+⸻
+
+🛠️ Tech Stack
+	•	Next.js 14 (App Router)
+	•	TypeScript
+	•	Socket.IO client
+	•	AudioWorklet API
+	•	TailwindCSS + shadcn/ui
+	•	Framer Motion
+
+⸻
+
+⚙️ Getting Started
+
+1️⃣ Clone the repository
+
+git clone https://github.com/<your-username>/<your-repo-name>.git
+cd <your-repo-name>
+
+2️⃣ Install dependencies
+
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+
+3️⃣ Start the development server
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be available at 👉 http://localhost:3000￼
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+⸻
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+🧩 Backend Setup (Required)
 
-## Learn More
+This frontend connects to a backend WebSocket server (Node.js + Socket.IO) for real-time speech recognition.
 
-To learn more about Next.js, take a look at the following resources:
+Update the connection URL in your component if your backend runs elsewhere:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+const socket = io("http://localhost:8081");
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ensure your backend emits:
+	•	receive_audio_text → with { isFinal: boolean; text: string } payloads
+	•	Handles:
+	•	startGoogleCloudStream
+	•	endGoogleCloudStream
+	•	send_audio_data
 
-## Deploy on Vercel
+⸻
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+📁 File Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+📦 project-root
+ ┣ 📂 app
+ ┃ ┣ 📜 page.tsx              # Main UI
+ ┃ ┣ 📜 layout.tsx            # Root layout
+ ┣ 📂 public
+ ┃ ┗ 📂 worklets
+ ┃    ┗ 📜 recorderWorkletProcessor.js  # AudioWorklet processor
+ ┣ 📂 components/ui           # shadcn components
+ ┣ 📜 package.json
+ ┣ 📜 README.md
+ ┗ 📜 tsconfig.json
+
+
+⸻
+
+🧠 Common Issues
+
+❌ Transcript not updating?
+
+Check your browser console for:
+	•	404 error for /worklets/recorderWorkletProcessor.js
+	•	Missing receive_audio_text logs
+
+✅ Fix:
+Move recorderWorkletProcessor.js to /public/worklets/ and reference it like:
+
+await audioContext.audioWorklet.addModule("/worklets/recorderWorkletProcessor.js");
+
+
+⸻
+
+🌍 Deployment
+
+Deploy easily using Vercel (recommended for Next.js apps):
+
+Deploy on Vercel￼
+
+Or build locally:
+
+npm run build
+npm start
+
+
+⸻
+
+📚 Learn More
+	•	Next.js Documentation￼
+	•	Socket.IO Client Docs￼
+	•	Web Audio API￼
+
+⸻
+
+💡 Author
+
+Developed by Rahul Kumar Patel
+💻 GitHub: @Rkp420￼
+
+⸻
