@@ -1,5 +1,3 @@
-Perfect 👍 — here’s a polished, professional README rewrite tailored for your speech-to-text frontend (Next.js) repo.
-It keeps the core Next.js info but adds context about what the project does, how to run it, and how it connects to your backend socket server.
 
 ⸻
 
