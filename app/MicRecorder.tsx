@@ -1,126 +1,105 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as io from "socket.io-client";
+import { useRef, useState } from "react";
+import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { Textarea } from "@/components/ui/textarea";
 
-const sampleRate = 16000;
-
-const getMediaStream = () =>
-  navigator.mediaDevices.getUserMedia({
-    audio: {
-      deviceId: "default",
-      sampleRate: sampleRate,
-      sampleSize: 16,
-      channelCount: 1,
-    },
-    video: false,
-  });
-
-interface WordRecognized {
-  isFinal: boolean;
-  text: string;
-}
-
-export default function Home() {
-  const [connection, setConnection] = useState<io.Socket>();
+export default function HomePage() {
+  const [isRecording, setIsRecording] = useState(false);
   const [currentRecognition, setCurrentRecognition] = useState<string>();
   const [sessionTranscript, setSessionTranscript] = useState<string>("");
   const [recognitionHistory, setRecognitionHistory] = useState<string[]>([]);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const processorRef = useRef<any>(null);
-  const audioContextRef = useRef<any>(null);
-  const audioInputRef = useRef<any>(null);
 
-  const speechRecognized = (data: WordRecognized) => {
-    if (data.isFinal) {
-      setSessionTranscript((prev) =>
-        prev ? `${prev} ${data.text}` : data.text
-      );
-      setCurrentRecognition("");
-    } else {
-      setCurrentRecognition(data.text);
+  const deepgramConnRef = useRef<any>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  async function startRecording() {
+    if (isRecording) return;
+
+    const res = await fetch("/api/token");
+    const { key } = await res.json();
+
+    if (!key) {
+      alert("Deepgram key not found");
+      return;
     }
-  };
 
-  const connect = () => {
-    connection?.disconnect();
-    const socket = io.connect(
-      "https://realtime-speech-to-text-backend.vercel.app"
-    );
-    socket.on("connect", () => {
-      console.log("connected", socket.id);
-      setConnection(socket);
+    const deepgram = createClient(key);
+    const conn = deepgram.listen.live({
+      model: "nova-2",
+      language: "en-US",
+      interim_results: true,
     });
 
-    socket.emit("startGoogleCloudStream");
-    socket.on("receive_audio_text", (data) => speechRecognized(data));
-  };
+    deepgramConnRef.current = conn;
 
-  const disconnect = () => {
-    if (!connection) return;
-    connection.emit("endGoogleCloudStream");
-    connection.disconnect();
+    conn.on(LiveTranscriptionEvents.Open, async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = async (e) => {
+        if (e.data.size > 0 && conn.getReadyState() === 1) {
+          conn.send(await e.data.arrayBuffer());
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+
+      conn.on(LiveTranscriptionEvents.Transcript, (data: any) => {
+        const transcriptText = data.channel.alternatives[0]?.transcript || "";
+        if (!transcriptText) return;
+
+        if (data.is_final) {
+          setSessionTranscript((prev) =>
+            prev ? `${prev} ${transcriptText}` : transcriptText
+          );
+          setCurrentRecognition("");
+        } else {
+          setCurrentRecognition(transcriptText);
+        }
+      });
+
+      conn.on(LiveTranscriptionEvents.Close, handleStop);
+      conn.on(LiveTranscriptionEvents.Error, (err: any) => {
+        console.error("Deepgram error:", err);
+        handleStop();
+      });
+    });
+  }
+
+  function handleStop() {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    if (deepgramConnRef.current) {
+      deepgramConnRef.current.finish();
+      deepgramConnRef.current = null;
+    }
 
     if (sessionTranscript.trim()) {
       setRecognitionHistory((old) => [sessionTranscript.trim(), ...old]);
       setSessionTranscript("");
     }
 
-    processorRef.current?.disconnect();
-    audioInputRef.current?.disconnect();
-    audioContextRef.current?.close();
-    setConnection(undefined);
+    setCurrentRecognition("");
     setIsRecording(false);
-  };
+  }
 
-  useEffect(() => {
-    (async () => {
-      if (connection) {
-        if (isRecording) return;
-        const stream = await getMediaStream();
-        audioContextRef.current = new window.AudioContext();
-
-        await audioContextRef.current.audioWorklet.addModule(
-          "/src/recorderWorkletProcessor.js"
-        );
-
-        audioInputRef.current =
-          audioContextRef.current.createMediaStreamSource(stream);
-
-        processorRef.current = new AudioWorkletNode(
-          audioContextRef.current,
-          "recorder.worklet"
-        );
-
-        processorRef.current.connect(audioContextRef.current.destination);
-        audioInputRef.current.connect(processorRef.current);
-
-        processorRef.current.port.onmessage = (event: any) => {
-          const audioData = event.data;
-          connection.emit("send_audio_data", { audio: audioData });
-        };
-        setIsRecording(true);
-      }
-    })();
-    return () => {
-      if (isRecording) {
-        processorRef.current?.disconnect();
-        audioInputRef.current?.disconnect();
-        if (audioContextRef.current?.state !== "closed") {
-          audioContextRef.current?.close();
-        }
-      }
-    };
-  }, [connection, isRecording]);
-
-  const handleMicClick = () => {
-    if (!isRecording) {
-      connect();
-    } else {
-      disconnect();
-    }
-  };
+  function stopRecording() {
+    if (!isRecording) return;
+    handleStop();
+  }
 
   return (
     <div className="flex w-screen min-h-screen flex-col bg-black text-white">
@@ -128,7 +107,7 @@ export default function Home() {
         <div className="mic-container my-5">
           <div
             className={`mic-icon ${isRecording ? "listening" : ""}`}
-            onClick={handleMicClick}
+            onClick={isRecording ? stopRecording : startRecording}
           >
             <i className="bi bi-mic-fill"></i>
           </div>
